@@ -34,6 +34,25 @@ export function initFiltering(elements, indexes) {
             }
         }
         // @todo: #4.5 — отфильтровать данные используя компаратор
-        return data.filter(row => compare(row, state));
+        return data.filter(row => {
+            // Сначала проверяем строку стандартным компаратором (по продавцу и остальным текстовым фильтрам)
+            const matchesTemplate = compare(row, state);
+            if (!matchesTemplate) return false;
+
+            // Извлекаем числовое значение суммы текущей строки
+            const rowTotal = parseFloat(row.total);
+
+            // Проверяем ограничение снизу (totalFrom)
+            if (state.totalFrom !== '' && !isNaN(state.totalFrom)) {
+                if (rowTotal < state.totalFrom) return false;
+            }
+
+            // Проверяем ограничение сверху (totalTo)
+            if (state.totalTo !== '' && !isNaN(state.totalTo)) {
+                if (rowTotal > state.totalTo) return false;
+            }
+
+            return true;
+        });
     }
 }
