@@ -1,5 +1,4 @@
 import {cloneTemplate} from "../lib/utils.js";
-
 /**
  * Инициализирует таблицу и вызывает коллбэк при любых изменениях и нажатиях на кнопки
  *
@@ -10,48 +9,34 @@ import {cloneTemplate} from "../lib/utils.js";
 export function initTable(settings, onAction) {
     const {tableTemplate, rowTemplate, before, after} = settings;
     const root = cloneTemplate(tableTemplate);
-
-    // @todo: #1.2 —  вывести дополнительные шаблоны до и после таблицы
     if (Array.isArray(before)) {
-        // Разворачиваем массив, чтобы при последовательном prepend 
-        // элементы встали в правильном (исходном) порядке
         [...before].reverse().forEach(subName => {
             root[subName] = cloneTemplate(subName);
             root.container.prepend(root[subName].container);
         });
     }
-
     if (Array.isArray(after)) {
         after.forEach(subName => {
             root[subName] = cloneTemplate(subName);
             root.container.append(root[subName].container);
         });
     }
-    // @todo: #1.3 —  обработать события и вызвать onAction()
     root.container.addEventListener('change', () => {
         onAction();
     });
-
     root.container.addEventListener('reset', () => {
         setTimeout(onAction, 0);
     });
-
     root.container.addEventListener('submit', (e) => {
         e.preventDefault();
         onAction(e.submitter);
     });
-    
     const render = (data) => {
-        // @todo: #1.1 — преобразовать данные в массив строк на основе шаблона rowTemplate
         const nextRows = data.map(item => {
             const row = cloneTemplate(rowTemplate);
-
             Object.keys(item).forEach(key => {
-                // Проверяем, есть ли элемент с таким именем в шаблоне строки
                 if (key in row.elements) {
                     const element = row.elements[key];
-
-                    // Проверяем тип тега для корректной записи значения
                     if (element.tagName === 'INPUT' || element.tagName === 'SELECT') {
                         element.value = item[key];
                     } else {
@@ -59,13 +44,9 @@ export function initTable(settings, onAction) {
                     }
                 }
             });
-
-            // Возвращаем корневой контейнерклон-строки (обычно это тег <tr>)
             return row.container;
         });
-        
         root.elements.rows.replaceChildren(...nextRows);
     }
-
     return {...root, render};
 }

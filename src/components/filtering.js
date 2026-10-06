@@ -1,58 +1,37 @@
-import {createComparison, defaultRules} from "../lib/compare.js";
-
-// @todo: #4.3 — настроить компаратор
-const compare = createComparison(defaultRules);
-
-export function initFiltering(elements, indexes) {
-    // @todo: #4.1 — заполнить выпадающие списки опциями
-    Object.keys(indexes)                                    // Получаем ключи из объекта
-      .forEach((elementName) => {                        // Перебираем по именам
-        elements[elementName].append(                    // в каждый элемент добавляем опции
-            ...Object.values(indexes[elementName])        // формируем массив имён, значений опций
-                      .map(name => {                        // используйте name как значение и текстовое содержимое
-                          const option = document.createElement('option');
-                          option.value = name;
-                          option.textContent = name;
-                          return option;
-                      })
-        )
+export function initFiltering(elements) {
+    const updateIndexes = (elements, indexes) => {
+    Object.keys(indexes).forEach((elementName) => {
+        elements[elementName].append(...Object.values(indexes[elementName]).map(name => {                        // используйте name как значение и текстовое содержимое
+                          const el = document.createElement('option');
+                          el.value = name;
+                          el.textContent = name;
+                          return el;
+                      }))
      });
-
-    return (data, state, action) => {
-        // @todo: #4.2 — обработать очистку поля
+    }
+    const applyFiltering = (query, state, action) => {
         if (action && action.name === 'clear') {
-            // Находим input внутри того же родительского контейнера, где находится кнопка
             const input = action.parentElement.querySelector('input');
             if (input) {
-                input.value = ''; // Сбрасываем текст на экране
+                input.value = '';
             }
-
-            // Узнаем имя поля из дата-атрибута кнопки и очищаем его в объекте state
             const fieldName = action.dataset.field;
             if (fieldName in state) {
                 state[fieldName] = '';
             }
         }
-        // @todo: #4.5 — отфильтровать данные используя компаратор
-        return data.filter(row => {
-            // Сначала проверяем строку стандартным компаратором (по продавцу и остальным текстовым фильтрам)
-            const matchesTemplate = compare(row, state);
-            if (!matchesTemplate) return false;
-
-            // Извлекаем числовое значение суммы текущей строки
-            const rowTotal = parseFloat(row.total);
-
-            // Проверяем ограничение снизу (totalFrom)
-            if (state.totalFrom !== '' && !isNaN(state.totalFrom)) {
-                if (rowTotal < state.totalFrom) return false;
+        const filter = {};
+        Object.keys(elements).forEach(key => {
+            if (elements[key]) {
+                if (['INPUT', 'SELECT'].includes(elements[key].tagName) && elements[key].value) {
+                    filter[`filter[${elements[key].name}]`] = elements[key].value;
+                }
             }
-
-            // Проверяем ограничение сверху (totalTo)
-            if (state.totalTo !== '' && !isNaN(state.totalTo)) {
-                if (rowTotal > state.totalTo) return false;
-            }
-
-            return true;
-        });
+        })
+        return Object.keys(filter).length ? Object.assign({}, query, filter) : query;
+    }
+    return {
+        updateIndexes,
+        applyFiltering
     }
 }
